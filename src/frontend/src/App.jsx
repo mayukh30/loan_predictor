@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
-import { Activity, Users, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Activity, Users, CheckCircle, AlertCircle, Info, Lightbulb, BadgeCheck } from 'lucide-react';
 import './App.css'; // Just keeping default import, but our styles are in index.css
 
 const API_URL = 'http://localhost:8000';
@@ -9,17 +9,17 @@ const API_URL = 'http://localhost:8000';
 function App() {
   const [stats, setStats] = useState(null);
   const [formData, setFormData] = useState({
-    Gender: '',
-    Married: '',
-    Dependents: '',
-    Education: '',
-    Self_Employed: '',
+    Gender: '1',
+    Married: '1',
+    Dependents: '0',
+    Education: '1',
+    Self_Employed: '1',
     ApplicantIncome: '',
     CoapplicantIncome: '',
     LoanAmount: '',
     Loan_Amount_Term: '',
-    Credit_History: '',
-    Property_Area: '' // Will be mapped to one-hot before sending
+    Credit_History: '1',
+    Property_Area: 'Urban' // Will be mapped to one-hot before sending
   });
   
   const [prediction, setPrediction] = useState(null);
@@ -41,10 +41,24 @@ function App() {
     e.preventDefault();
     setLoading(true);
     
-    // Validate all fields are filled
-    const missing = Object.entries(formData).filter(([_, v]) => v === '' );
+    // Validate required fields are present and numeric fields are valid numbers
+    const requiredFields = [
+      'Gender','Married','Dependents','Education','Self_Employed',
+      'ApplicantIncome','CoapplicantIncome','LoanAmount','Loan_Amount_Term','Credit_History','Property_Area'
+    ];
+
+    const missing = requiredFields.filter((key) => {
+      const v = formData[key];
+      if (v === null || v === undefined) return true;
+      if (String(v).trim() === '') return true;
+      if (['ApplicantIncome','CoapplicantIncome','LoanAmount','Loan_Amount_Term'].includes(key)) {
+        return Number.isNaN(Number(v));
+      }
+      return false;
+    });
+
     if (missing.length > 0) {
-      alert('Please fill all fields before submitting.');
+      alert(`Please fill valid values for: ${missing.join(', ')}`);
       setLoading(false);
       return;
     }
@@ -91,26 +105,7 @@ function App() {
         <p>AI-Powered Risk Assessment & Customer Insights</p>
       </header>
 
-      {/* Top Stats Row */}
-      {stats && (
-        <div className="stats-container">
-          <div className="card stat-box">
-            <Users size={32} color="#3b82f6" style={{margin: '0 auto'}}/>
-            <div className="stat-value">{stats.total_applications}</div>
-            <div className="stat-label">Total Applications</div>
-          </div>
-          <div className="card stat-box">
-            <CheckCircle size={32} color="#10b981" style={{margin: '0 auto'}}/>
-            <div className="stat-value">{(stats.approval_rate * 100).toFixed(1)}%</div>
-            <div className="stat-label">Approval Rate</div>
-          </div>
-          <div className="card stat-box">
-            <Activity size={32} color="#f59e0b" style={{margin: '0 auto'}}/>
-            <div className="stat-value">{stats.average_risk_score.toFixed(1)}</div>
-            <div className="stat-label">Avg Risk Score</div>
-          </div>
-        </div>
-      )}
+
 
       <div className="dashboard-grid">
         {/* Main Application Form */}
@@ -188,7 +183,7 @@ function App() {
               </div>
             </div>
             
-            <button type="submit" className="btn btn-primary" disabled={loading || Object.values(formData).some(v => v === '')}>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Analyzing...' : 'Predict Loan Default Risk'}
             </button>
           </form>
@@ -232,6 +227,100 @@ function App() {
                         <span className="shap-feature" style={{lineHeight: '1.4', fontWeight: '400'}}>{reason.explanation}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {!prediction.approved && prediction.recommendations && prediction.recommendations.length > 0 && (
+                <div className="card advice-card" style={{marginTop: '1.5rem'}}>
+                  <h3 style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--warning)', marginBottom: '0.75rem'}}>
+                    <Lightbulb size={20} />
+                    Loan Improvement Plan
+                  </h3>
+                  <p style={{fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>
+                    These recommendations are retrieved from the vector advice store using your income, loan amount, and rejection context.
+                  </p>
+                  <div className="advice-grid">
+                    {prediction.recommendations.map((item, idx) => (
+                      <div key={idx} className="advice-item">
+                        <div className="advice-item-header">
+                          <span className="advice-category">{item.category}</span>
+                          <span className="advice-impact">{item.impact} impact</span>
+                        </div>
+                        <h4>{item.title}</h4>
+                        <p>{item.content}</p>
+                        <div className="advice-action">
+                          <BadgeCheck size={16} />
+                          <span>{item.action}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {prediction.suggestions && prediction.suggestions.length > 0 && (
+                    <div style={{marginTop: '1rem'}}>
+                      <h4 style={{marginBottom: '0.5rem', fontSize: '0.95rem'}}>Quick summary</h4>
+                      <ul className="advice-summary-list">
+                        {prediction.suggestions.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Stats Comparison */}
+              {stats && stats.averages && (
+                <div className="card" style={{marginTop: '1.5rem', border: '1px solid var(--border)', backgroundColor: 'rgba(0,0,0,0.1)'}}>
+                  <h3 style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)', marginBottom: '1rem'}}>
+                    <Activity size={20} />
+                    Comparison with Historical Data
+                  </h3>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', height: '250px'}}>
+                    <div style={{padding: '1rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px', height: '100%', display: 'flex', flexDirection: 'column'}}>
+                      <h4 style={{fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'center'}}>Applicant Income ($)</h4>
+                      <div style={{flexGrow: 1, minHeight: 0}}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={[
+                            { name: 'You', value: Number(formData.ApplicantIncome) || 0 },
+                            { name: 'Approved', value: stats.averages.approved.ApplicantIncome },
+                            { name: 'Rejected', value: stats.averages.rejected.ApplicantIncome }
+                          ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                            <RechartsTooltip contentStyle={{backgroundColor: '#1e293b', border: 'none', borderRadius: '4px', color: '#f8fafc'}} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
+                            <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                              <Cell fill="#8b5cf6" />
+                              <Cell fill="#10b981" />
+                              <Cell fill="#ef4444" />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <div style={{padding: '1rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px', height: '100%', display: 'flex', flexDirection: 'column'}}>
+                      <h4 style={{fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'center'}}>Loan Amount (k$)</h4>
+                      <div style={{flexGrow: 1, minHeight: 0}}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={[
+                            { name: 'You', value: Number(formData.LoanAmount) || 0 },
+                            { name: 'Approved', value: stats.averages.approved.LoanAmount },
+                            { name: 'Rejected', value: stats.averages.rejected.LoanAmount }
+                          ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                            <RechartsTooltip contentStyle={{backgroundColor: '#1e293b', border: 'none', borderRadius: '4px', color: '#f8fafc'}} cursor={{fill: 'rgba(255,255,255,0.05)'}} />
+                            <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                              <Cell fill="#8b5cf6" />
+                              <Cell fill="#10b981" />
+                              <Cell fill="#ef4444" />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

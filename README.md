@@ -55,9 +55,22 @@ Users can enter applicant data (Income, Loan Amount, Credit History, etc.) to ge
 ### 3. Human-Readable AI Explainability (XAI)
 Instead of returning opaque "black box" decisions or raw mathematical impacts, the system uses SHAP to analyze the model's decision logic and translates it into human-readable sentences (e.g., "Poor credit history", "The requested loan amount is excessively high relative to the income profile"). 
 
-## How Rejection Is Determined
+## Explainability: How SHAP Gives Reasons (Without LLMs)
 
-When a loan application is submitted, the backend runs the **Logistic Regression** model to compute a **risk score** (0‑100). The model predicts the probability of default; applications with a risk score above a configurable threshold (default 50) are marked **REJECTED**, otherwise **APPROVED**. In addition to the binary decision, we use **SHAP (SHapley Additive exPlanations)** to identify which input features contributed most to a rejection. These are presented in the UI as **Primary Rejection Reasons**.
+When a loan application is submitted, the backend runs the **Logistic Regression** model to compute a **risk score** (0‑100). The model predicts the probability of default; applications with a risk score above a configurable threshold (default 50) are marked **REJECTED**, otherwise **APPROVED**. 
+
+Instead of relying on a generative LLM (Large Language Model) to guess why a loan was rejected, we use **SHAP (SHapley Additive exPlanations)**, a game-theoretic approach to explain the output of any machine learning model. 
+- SHAP calculates the exact mathematical contribution of each input feature to the final prediction.
+- If a prediction is negative (rejected), the backend filters for the features that pushed the score toward rejection (negative SHAP values).
+- These exact features are then mapped to predefined, human-readable templates (e.g., if `Credit_History` had a large negative SHAP value, it outputs "Poor credit history").
+- This guarantees that the explanations are 100% faithful to the model's actual logic, deterministic, and free of LLM hallucinations.
+
+### How Loan Suggestions Work (No LangChain required)
+When an application is rejected or has a borderline risk score, the system provides personalized financial recommendations to help the user improve their profile. 
+This is achieved **without LangChain or external Vector DBs**. Instead, we built a custom, lightweight `LoanAdviceVectorStore` using `scikit-learn`'s `TfidfVectorizer` and NumPy. 
+1. A hardcoded catalog of financial advice (`ADVICE_CATALOG`) is converted into TF-IDF vectors.
+2. The user's input profile and SHAP rejection reasons are combined into a search query.
+3. The system performs a cosine similarity search against the matrix to return the top recommendations most relevant to the applicant's specific rejection context (e.g., advising them to lower the loan amount if income was flagged as the primary issue).
 
 ## Input Parameters – Meaning & Impact
 
@@ -65,7 +78,7 @@ When a loan application is submitted, the backend runs the **Logistic Regression
 |---|---|---|
 | **Gender** | 1 = Male, 0 = Female | Slight effect; female applicants may have a marginally higher risk in the training data. |
 | **Married** | 1 = Married, 0 = Not Married | Married status often reduces perceived risk due to assumed financial stability. |
-| **Dependents** | Number of dependents (0‑3+) | More dependents increase financial burden, raising the risk score. |
+| **Dependents** | Number of dependents (0‑3+) | Surprisingly, in this dataset, more dependents slightly *decreases* the risk score. This may be a data bias where dependents correlate with older, more established applicants. |
 | **Education** | 1 = Graduate, 0 = Not Graduate | Graduates tend to have lower default risk; non‑graduates see a modest increase. |
 | **Self_Employed** | 1 = Self‑Employed, 0 = Not Self‑Employed | Self‑employment may indicate irregular income, slightly increasing risk. |
 | **ApplicantIncome** | Primary applicant's monthly income (USD) | Higher income lowers risk proportionally. |
