@@ -25,7 +25,7 @@ def train_and_save_models():
     y = df['Loan_Status']
     
     # Log transformation for skewed financial features to handle outliers
-    skewed_cols = ['ApplicantIncome', 'CoapplicantIncome', 'LoanAmount']
+    skewed_cols = ['person_income', 'loan_amnt']
     for col in skewed_cols:
         X[col] = np.log1p(X[col])
     

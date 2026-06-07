@@ -2,24 +2,21 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Activity, Users, CheckCircle, AlertCircle, Info, Lightbulb, BadgeCheck } from 'lucide-react';
-import './App.css'; // Just keeping default import, but our styles are in index.css
+import './App.css'; 
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'http://localhost:8002';
 
 function App() {
   const [stats, setStats] = useState(null);
   const [formData, setFormData] = useState({
-    Gender: '1',
-    Married: '1',
-    Dependents: '0',
-    Education: '1',
-    Self_Employed: '1',
-    ApplicantIncome: '',
-    CoapplicantIncome: '',
-    LoanAmount: '',
-    Loan_Amount_Term: '',
-    Credit_History: '1',
-    Property_Area: 'Urban' // Will be mapped to one-hot before sending
+    person_age: '',
+    person_income: '',
+    person_home_ownership: 'RENT',
+    person_emp_length: '',
+    loan_intent: 'EDUCATION',
+    loan_amnt: '',
+    loan_int_rate: '',
+    loan_term_days: ''
   });
   
   const [prediction, setPrediction] = useState(null);
@@ -43,15 +40,15 @@ function App() {
     
     // Validate required fields are present and numeric fields are valid numbers
     const requiredFields = [
-      'Gender','Married','Dependents','Education','Self_Employed',
-      'ApplicantIncome','CoapplicantIncome','LoanAmount','Loan_Amount_Term','Credit_History','Property_Area'
+      'person_age', 'person_income', 'person_home_ownership', 'person_emp_length',
+      'loan_intent', 'loan_amnt', 'loan_int_rate', 'loan_term_days'
     ];
 
     const missing = requiredFields.filter((key) => {
       const v = formData[key];
       if (v === null || v === undefined) return true;
       if (String(v).trim() === '') return true;
-      if (['ApplicantIncome','CoapplicantIncome','LoanAmount','Loan_Amount_Term'].includes(key)) {
+      if (['person_age', 'person_income', 'person_emp_length', 'loan_amnt', 'loan_int_rate', 'loan_term_days'].includes(key)) {
         return Number.isNaN(Number(v));
       }
       return false;
@@ -63,20 +60,15 @@ function App() {
       return;
     }
     
-    // Map Property_Area to the dummy variables
     const payload = {
-      Gender: parseInt(formData.Gender),
-      Married: parseInt(formData.Married),
-      Dependents: parseInt(formData.Dependents),
-      Education: parseInt(formData.Education),
-      Self_Employed: parseInt(formData.Self_Employed),
-      ApplicantIncome: parseFloat(formData.ApplicantIncome),
-      CoapplicantIncome: parseFloat(formData.CoapplicantIncome),
-      LoanAmount: parseFloat(formData.LoanAmount),
-      Loan_Amount_Term: parseFloat(formData.Loan_Amount_Term),
-      Credit_History: parseInt(formData.Credit_History),
-      Property_Area_Semiurban: formData.Property_Area === 'Semiurban' ? 1 : 0,
-      Property_Area_Urban: formData.Property_Area === 'Urban' ? 1 : 0
+      person_age: parseInt(formData.person_age),
+      person_income: parseFloat(formData.person_income),
+      person_home_ownership: formData.person_home_ownership,
+      person_emp_length: parseInt(formData.person_emp_length),
+      loan_intent: formData.loan_intent,
+      loan_amnt: parseFloat(formData.loan_amnt),
+      loan_int_rate: parseFloat(formData.loan_int_rate),
+      loan_term_days: parseInt(formData.loan_term_days)
     };
 
     try {
@@ -91,9 +83,9 @@ function App() {
   };
 
   const pieData = stats ? [
-    { name: 'Urban', value: stats.segmentation.Urban },
-    { name: 'Semiurban', value: stats.segmentation.Semiurban },
-    { name: 'Rural', value: stats.segmentation.Rural },
+    { name: 'Rent', value: stats.segmentation.Rent || 0 },
+    { name: 'Own', value: stats.segmentation.Own || 0 },
+    { name: 'Mortgage', value: stats.segmentation.Mortgage || 0 },
   ] : [];
 
   const COLORS = ['#8b5cf6', '#3b82f6', '#10b981'];
@@ -102,10 +94,8 @@ function App() {
     <div className="app-container">
       <header className="header">
         <h1>IntelliLoan Prediction Engine</h1>
-        <p>AI-Powered Risk Assessment & Customer Insights</p>
+        <p>AI-Powered Risk Assessment & Customer Insights (Pinecone Vector DB)</p>
       </header>
-
-
 
       <div className="dashboard-grid">
         {/* Main Application Form */}
@@ -114,72 +104,54 @@ function App() {
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
               <div className="form-group">
-                <label>Gender</label>
-                <select className="form-control" name="Gender" value={formData.Gender} onChange={handleInputChange}>
-                  <option value="1">Male</option>
-                  <option value="0">Female</option>
+                <label>Age</label>
+                <input type="number" className="form-control" name="person_age" value={formData.person_age} onChange={handleInputChange} required />
+              </div>
+              <div className="form-group">
+                <label>Income ($)</label>
+                <input type="number" className="form-control" name="person_income" value={formData.person_income} onChange={handleInputChange} required />
+              </div>
+              <div className="form-group">
+                <label>Employment Length (Years)</label>
+                <input type="number" className="form-control" name="person_emp_length" value={formData.person_emp_length} onChange={handleInputChange} required />
+              </div>
+              <div className="form-group">
+                <label>Home Ownership</label>
+                <select className="form-control" name="person_home_ownership" value={formData.person_home_ownership} onChange={handleInputChange}>
+                  <option value="RENT">Rent</option>
+                  <option value="OWN">Own</option>
+                  <option value="MORTGAGE">Mortgage</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Married</label>
-                <select className="form-control" name="Married" value={formData.Married} onChange={handleInputChange}>
-                  <option value="1">Yes</option>
-                  <option value="0">No</option>
+                <label>Loan Intent</label>
+                <select className="form-control" name="loan_intent" value={formData.loan_intent} onChange={handleInputChange}>
+                  <option value="EDUCATION">Education</option>
+                  <option value="MEDICAL">Medical</option>
+                  <option value="VENTURE">Venture / Business</option>
+                  <option value="PERSONAL">Personal</option>
+                  <option value="DEBTCONSOLIDATION">Debt Consolidation</option>
+                  <option value="HOMEIMPROVEMENT">Home Improvement</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Dependents</label>
-                <select className="form-control" name="Dependents" value={formData.Dependents} onChange={handleInputChange}>
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3+</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Education</label>
-                <select className="form-control" name="Education" value={formData.Education} onChange={handleInputChange}>
-                  <option value="1">Graduate</option>
-                  <option value="0">Not Graduate</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Self Employed</label>
-                <select className="form-control" name="Self_Employed" value={formData.Self_Employed} onChange={handleInputChange}>
-                  <option value="1">Yes</option>
-                  <option value="0">No</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Applicant Income ($)</label>
-                <input type="number" className="form-control" name="ApplicantIncome" value={formData.ApplicantIncome} onChange={handleInputChange} required />
-              </div>
-              <div className="form-group">
-                <label>Coapplicant Income ($)</label>
-                <input type="number" className="form-control" name="CoapplicantIncome" value={formData.CoapplicantIncome} onChange={handleInputChange} required />
-              </div>
-              <div className="form-group">
-                <label>Loan Amount (k$)</label>
-                <input type="number" className="form-control" name="LoanAmount" value={formData.LoanAmount} onChange={handleInputChange} required />
+                <label>Loan Amount ($)</label>
+                <input type="number" className="form-control" name="loan_amnt" value={formData.loan_amnt} onChange={handleInputChange} required />
               </div>
               <div className="form-group">
                 <label>Loan Term (Days)</label>
-                <input type="number" className="form-control" name="Loan_Amount_Term" value={formData.Loan_Amount_Term} onChange={handleInputChange} required />
-              </div>
-              <div className="form-group">
-                <label>Credit History</label>
-                <select className="form-control" name="Credit_History" value={formData.Credit_History} onChange={handleInputChange}>
-                  <option value="1">Good (1.0)</option>
-                  <option value="0">Bad (0.0)</option>
+                <select className="form-control" name="loan_term_days" value={formData.loan_term_days} onChange={handleInputChange} required>
+                  <option value="" disabled>Select Term...</option>
+                  <option value="360">1 Year (360 Days)</option>
+                  <option value="720">2 Years (720 Days)</option>
+                  <option value="1080">3 Years (1080 Days)</option>
+                  <option value="1800">5 Years (1800 Days)</option>
+                  <option value="3600">10 Years (3600 Days)</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Property Area</label>
-                <select className="form-control" name="Property_Area" value={formData.Property_Area} onChange={handleInputChange}>
-                  <option value="Urban">Urban</option>
-                  <option value="Semiurban">Semiurban</option>
-                  <option value="Rural">Rural</option>
-                </select>
+              <div className="form-group" style={{gridColumn: '1 / -1'}}>
+                <label>Interest Rate (%)</label>
+                <input type="number" step="0.1" className="form-control" name="loan_int_rate" value={formData.loan_int_rate} onChange={handleInputChange} required />
               </div>
             </div>
             
@@ -231,41 +203,22 @@ function App() {
                 </div>
               )}
 
-              {!prediction.approved && prediction.recommendations && prediction.recommendations.length > 0 && (
+              {prediction.suggestions && prediction.suggestions.length > 0 && (
                 <div className="card advice-card" style={{marginTop: '1.5rem'}}>
                   <h3 style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--warning)', marginBottom: '0.75rem'}}>
                     <Lightbulb size={20} />
-                    Loan Improvement Plan
+                    Pinecone Vector DB Advice
                   </h3>
                   <p style={{fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem'}}>
-                    These recommendations are retrieved from the vector advice store using your income, loan amount, and rejection context.
+                    These recommendations were semantically retrieved from the Pinecone vector database using sentence-transformers based on your exact SHAP profile.
                   </p>
-                  <div className="advice-grid">
-                    {prediction.recommendations.map((item, idx) => (
-                      <div key={idx} className="advice-item">
-                        <div className="advice-item-header">
-                          <span className="advice-category">{item.category}</span>
-                          <span className="advice-impact">{item.impact} impact</span>
-                        </div>
-                        <h4>{item.title}</h4>
-                        <p>{item.content}</p>
-                        <div className="advice-action">
-                          <BadgeCheck size={16} />
-                          <span>{item.action}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div style={{marginTop: '1rem'}}>
+                    <ul className="advice-summary-list">
+                      {prediction.suggestions.map((item, idx) => (
+                        <li key={idx} style={{marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem'}}>{item}</li>
+                      ))}
+                    </ul>
                   </div>
-                  {prediction.suggestions && prediction.suggestions.length > 0 && (
-                    <div style={{marginTop: '1rem'}}>
-                      <h4 style={{marginBottom: '0.5rem', fontSize: '0.95rem'}}>Quick summary</h4>
-                      <ul className="advice-summary-list">
-                        {prediction.suggestions.map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -282,9 +235,9 @@ function App() {
                       <div style={{flexGrow: 1, minHeight: 0}}>
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={[
-                            { name: 'You', value: Number(formData.ApplicantIncome) || 0 },
-                            { name: 'Approved', value: stats.averages.approved.ApplicantIncome },
-                            { name: 'Rejected', value: stats.averages.rejected.ApplicantIncome }
+                            { name: 'You', value: Number(formData.person_income) || 0 },
+                            { name: 'Approved', value: stats.averages.approved.Income },
+                            { name: 'Rejected', value: stats.averages.rejected.Income }
                           ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                             <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
@@ -300,11 +253,11 @@ function App() {
                       </div>
                     </div>
                     <div style={{padding: '1rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '8px', height: '100%', display: 'flex', flexDirection: 'column'}}>
-                      <h4 style={{fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'center'}}>Loan Amount (k$)</h4>
+                      <h4 style={{fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'center'}}>Loan Amount ($)</h4>
                       <div style={{flexGrow: 1, minHeight: 0}}>
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={[
-                            { name: 'You', value: Number(formData.LoanAmount) || 0 },
+                            { name: 'You', value: Number(formData.loan_amnt) || 0 },
                             { name: 'Approved', value: stats.averages.approved.LoanAmount },
                             { name: 'Rejected', value: stats.averages.rejected.LoanAmount }
                           ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -359,7 +312,9 @@ function App() {
                 About System
               </h3>
               <p style={{color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.6'}}>
-                This Loan Default Prediction System uses a Logistic Regression model integrated with SHAP (SHapley Additive exPlanations) to provide fair, mathematically sound reasoning for loan rejections, rather than relying on generative LLMs.
+                This Loan Default Prediction System uses a Logistic Regression model integrated with SHAP (SHapley Additive exPlanations) to provide fair, mathematically sound reasoning for loan rejections.
+                <br/><br/>
+                It uses a <strong>Pinecone Vector Database</strong> and `sentence-transformers` to map SHAP explanations to semantically similar financial advice instantly!
               </p>
             </div>
           </div>
