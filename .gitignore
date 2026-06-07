@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+dataset/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.env
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnp
+.pnp.js
+
+# Frontend specific
+dist/
+dist-ssr/
+*.local
+
+# System
+.DS_Store
+Thumbs.db
+
+# Project specific
+models/
