@@ -1,6 +1,7 @@
 # Python
 __pycache__/
-dataset/
+dataset/*
+!dataset/cleaned_train.csv
 *.py[cod]
 *$py.class
 *.so
@@ -21,7 +22,21 @@ var/
 .installed.cfg
 *.egg
 venv/
+.venv/
 .env
+
+# Testing / Logs
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # Node
 node_modules/
@@ -31,8 +46,8 @@ yarn-error.log
 .pnp.js
 
 # Frontend specific
-dist/
-dist-ssr/
+src/frontend/dist/
+src/frontend/dist-ssr/
 *.local
 
 # System
@@ -40,5 +55,6 @@ dist-ssr/
 Thumbs.db
 
 # Project specific
-models/
+models/xgboost.json
+models/dnn_model.h5
 INTERVIEW_QA.md

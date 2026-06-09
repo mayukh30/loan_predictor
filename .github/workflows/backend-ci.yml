@@ -1,0 +1,40 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/backend/**'
+      - 'src/ml/**'
+      - 'requirements.txt'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'src/backend/**'
+      - 'src/ml/**'
+      - 'requirements.txt'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Verify Backend Application (Syntax Check)
+      run: |
+        # Simply compile python files to catch syntax errors
+        python -m py_compile src/backend/main.py
