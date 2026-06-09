@@ -15,4 +15,4 @@ jobs:
           lfs: true
           
       - name: Push to Hugging Face
-        run: git push --force https://mayukh30:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/mayukh30/loan-prediction main
+        run: git push --force https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/mayukh30/loan-prediction main
