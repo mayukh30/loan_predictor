@@ -36,10 +36,16 @@ try:
         scaler = pickle.load(f)
     with open(os.path.join(models_dir, 'logistic_regression.pkl'), 'rb') as f:
         lr_model = pickle.load(f)
+        if not hasattr(lr_model, 'multi_class'):
+            lr_model.multi_class = 'ovr' # Fix for SHAP compatibility with scikit-learn >= 1.5.0
+            
     with open(os.path.join(models_dir, 'feature_names.pkl'), 'rb') as f:
         feature_names = pickle.load(f)
         
     train_df = pd.read_csv(os.path.join(dataset_dir, "cleaned_train.csv"))
+    
+    # SHAP LinearExplainer may also need to be patched depending on the version, 
+    # but setting multi_class on the model is usually sufficient.
     explainer = shap.LinearExplainer(lr_model, scaler.transform(train_df.drop('Loan_Status', axis=1, errors='ignore')))
     advice_store = PineconeAdviceVectorStore()
 except Exception as e:
