@@ -9,6 +9,7 @@ An end-to-end Machine Learning web application that assesses loan default risk u
 ## Table of Contents
 - [Architecture & System Design](#architecture--system-design)
 - [Tech Stack](#tech-stack)
+- [CI/CD & Deployment Workflow](#cicd--deployment-workflow)
 - [Features](#features)
 - [Input Parameters](#input-parameters)
 - [How SHAP Explainability Works](#how-shap-explainability-works)
@@ -50,6 +51,52 @@ User Input → React UI → POST /predict → FastAPI → StandardScaler → Log
 | `GET`  | `/`       | Health check |
 | `POST` | `/predict`| Submit loan application, returns risk score + SHAP reasons + Pinecone advice |
 | `GET`  | `/stats`  | Dynamic dashboard statistics computed from the training dataset |
+
+---
+
+## CI/CD & Deployment Workflow
+
+The project utilizes a fully automated CI/CD pipeline leveraging **GitHub Actions**, **Vercel**, and **Hugging Face Spaces**.
+
+### Deployment Architecture
+```
+[Developer Push] ──► [GitHub Repository]
+                              │
+            ┌─────────────────┴─────────────────┐
+            ▼                                   ▼
+   [GitHub Actions CI]                 [Vercel CI/CD]
+   - Runs ESLint                       - Pulls latest main branch
+   - Verifies build                    - Injects VITE_API_URL
+            │                          - Builds React app
+            ▼                          - Deploys to Vercel Edge Network
+   [GitHub Actions CD]                          │
+   - Force pushes to HF Space                   ▼
+            │                            [Live Frontend]
+            ▼
+ [Hugging Face Spaces]
+   - Rebuilds Docker image (Python 3.12)
+   - Installs requirements.txt
+   - Exposes FastAPI on port 7860
+            │
+            ▼
+     [Live Backend]
+```
+
+### 1. Frontend Deployment (Vercel)
+- The frontend is hosted on **Vercel**.
+- **Continuous Deployment**: Any push to the `main` branch automatically triggers a Vercel build.
+- **Environment Variables**: Vercel injects `VITE_API_URL` during the build step, ensuring the React app natively points to the production Hugging Face backend instead of `localhost`.
+
+### 2. Backend Deployment (Hugging Face Spaces)
+- The backend is hosted as a **Docker Space on Hugging Face**.
+- **Continuous Deployment**: A custom GitHub Action (`.github/workflows/huggingface-sync.yml`) is triggered on every push to `main`.
+- This action forces a sync from the GitHub repository to the Hugging Face Git remote.
+- Hugging Face detects the update, reads the `Dockerfile`, and automatically spins up a new container using `python:3.12-slim` to match the exact environment the Scikit-learn model was trained in.
+
+### 3. Continuous Integration (CI)
+- A GitHub Action (`frontend-ci.yml`) runs on every push and pull request.
+- It enforces code quality by running `npm run lint`.
+- It validates build integrity by running `npm run build` using Node 20.x, ensuring no broken code reaches production.
 
 ---
 
