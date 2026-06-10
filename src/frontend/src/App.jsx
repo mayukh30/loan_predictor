@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, L
 import { Activity, Users, CheckCircle, AlertCircle, Info, Lightbulb, BadgeCheck } from 'lucide-react';
 import './App.css'; 
 
-const API_URL = 'http://localhost:8002';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
 
 function App() {
   const [stats, setStats] = useState(null);
