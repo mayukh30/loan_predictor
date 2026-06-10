@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Activity, Users, CheckCircle, AlertCircle, Info, Lightbulb, BadgeCheck } from 'lucide-react';
+import { Activity, AlertCircle, Info, Lightbulb } from 'lucide-react';
 import './App.css'; 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
