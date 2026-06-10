@@ -1,5 +1,5 @@
-# Use the official Python 3.9 image
-FROM python:3.9-slim
+# Use the official Python 3.12 image
+FROM python:3.12-slim
 
 # Set up a new user named "user" with user ID 1000
 # Hugging Face Spaces requires running as a non-root user
