@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from loan_advisor import PineconeAdviceVectorStore
+from src.backend.loan_advisor import PineconeAdviceVectorStore
 
 app = FastAPI(title="Loan Prediction API")
 
