@@ -73,6 +73,12 @@ function App() {
 
     try {
       const res = await axios.post(`${API_URL}/predict`, payload);
+      if (res.data.error) {
+        alert("Backend Error: " + res.data.error + "\n\nCheck browser console for full traceback.");
+        console.error("Backend Traceback:", res.data.traceback);
+        setLoading(false);
+        return;
+      }
       setPrediction(res.data);
     } catch (err) {
       console.error("Prediction error:", err);
