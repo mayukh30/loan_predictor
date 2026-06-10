@@ -14,6 +14,14 @@ jobs:
           fetch-depth: 0
           lfs: true
 
+      - name: Swap README for Hugging Face
+        run: |
+          cp HF_README.md README.md
+          git config user.email "ci@github.com"
+          git config user.name "CI Bot"
+          git add README.md
+          git commit -m "Swap README for HF Spaces" --allow-empty
+
       - name: Configure git credentials for Hugging Face
         run: |
           git config --global credential.helper store
